@@ -1,0 +1,106 @@
+#
+# 'make depend'       uses makedepend to automatically generate dependencies 
+#                     (dependencies are added to end of Makefile)
+#
+# 'make'              build executable file 'EXE'
+#
+# 'make clean'        removes all .o and executable files
+#
+#Compiler
+CC  = gcc
+CXX = g++
+
+#Ar lib
+AR = ar
+
+#linker 
+LINK = g++
+
+#Compile-time flags -Wall 
+FLAGSCC  = -Wall -o2 -c -g
+FLAGSCXX = $(FLAGSCC) -std=c++0x
+
+#ar flags
+ARFLAGS = rvs
+
+#define any libraries to link into executable: -l, -L
+LDFLAGS = 
+
+#define any directories containing header files other than /usr/include: -I
+INCLUDES = 
+
+#src
+SRCSCC   =
+SRCSCXX  =
+
+#h
+SRCSHH   =
+SRCSHXX  = 
+
+#SUFFIXES defs
+.SUFFIXES: .c .o .opp .h .txt .cpp .ini
+
+#
+# In the following part of the makefile write defs for each modules
+#
+
+#utils
+SRCSHH   += ../CityImg/Common.h
+
+#rtsp server use ffmpeg 
+FFMPEG_LIBS = libavdevice libavformat libavfilter libavcodec libswresample libswscale libavutil
+LDFLAGS  += -lm $(shell pkg-config --libs $(FFMPEG_LIBS))
+
+LIVE555_LIBS  = -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
+INCLUDES  += -I ../LIVE555/include
+LDFLAGS   += -L ../LIVE555/lib
+LDFLAGS  += $(LIVE555_LIBS)
+
+SRCSCC   += ../RtspServer/FM_ImgGrabber_Thread.c
+
+SRCSCXX  += ../RtspServer/LiveServerMediaSubsession.cpp
+SRCSCXX  += ../RtspServer/DeviceSource.cpp
+SRCSCXX  += ../RtspServer/RtspServer.cpp
+SRCSCC   += ../RtspServer/RtspServer_Thread.c 
+
+#Main
+LDFLAGS  += -pthread
+SRCSCC   += ../CityImg/SystemInc.c
+SRCSCC   += ../CityImg/CityImg.c
+
+# define the executable file 
+EXE = CityImg
+
+OBJSCC  = $(SRCSCC:.c=.o)
+OBJSCXX = $(SRCSCXX:.cpp=.opp)
+
+#
+# The following part of the makefile is generic; it can be used to 
+# build any executable just by changing the definitions above and by
+# deleting dependencies appended to the file from 'make depend'
+#
+
+.PHONY: depend clean
+
+all:    $(EXE)
+
+$(EXE): $(OBJSCC) $(OBJSCXX)
+	 $(LINK) -o $(EXE)  $(OBJSCC) $(OBJSCXX) $(LDFLAGS)
+
+.c.o:
+	$(CC) $(FLAGSCC) $(INCLUDES) $< -o $@
+
+.cpp.opp:
+	$(CXX) $(FLAGSCXX) $(INCLUDES) $< -o $@
+
+clean:
+	$(RM) $(SRCSCC:.c=.o) $(SRCSCC:.c=.*~) $(SRCSCC:.c=.*\#)
+	$(RM) $(SRCSCXX:.cpp=.opp) $(SRCSCXX:.cpp=.*~) $(SRCSCXX:.cpp=.*\#)
+	$(RM) $(SRCSHH:.h=.h~) $(SRCSHH:.h=.h\#)
+	$(RM) $(SRCSHXX:.hpp=.hpp~) $(SRCSHXX:.hpp=.hpp\#)
+	$(RM) $(EXE)
+
+depend: $(SRCSCC) $(SRCSCXX)
+	makedepend $^
+
+# DO NOT DELETE THIS LINE -- make depend needs it
